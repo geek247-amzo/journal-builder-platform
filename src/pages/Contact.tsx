@@ -74,7 +74,7 @@ const Contact = () => {
           >
             <p className="text-sm font-medium tracking-[0.3em] uppercase text-primary-foreground/50 mb-4">Contact</p>
             <h1 className="font-display text-5xl md:text-6xl font-bold text-primary-foreground leading-tight mb-6">
-              Let's Talk Security
+              Let's Talk Continuity
             </h1>
             <p className="text-lg text-primary-foreground/60 leading-relaxed">
               Get in touch for a free consultation, quote, or to learn more about our managed IT services.

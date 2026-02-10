@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   Rocket,
   Activity,
+  ArrowRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import cctvImage from "@/assets/cctv-security.jpg";
@@ -161,6 +162,35 @@ const Services = () => {
         </div>
       </section>
 
+      {/* Free Trial Banner */}
+      <section className="section-padding bg-primary border-t border-primary-foreground/10">
+        <div className="container text-center">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+          >
+            <p className="text-sm font-medium tracking-[0.3em] uppercase text-primary-foreground/50 mb-3">
+              Limited Offer
+            </p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+              Try Our Managed IT Support — Free for 30 Days
+            </h2>
+            <p className="text-primary-foreground/60 max-w-lg mx-auto mb-8 leading-relaxed">
+              No commitment. No credit card. Experience proactive monitoring, unlimited remote support, and 24/7 NOC coverage — completely free for your first month.
+            </p>
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-2 bg-white text-black px-10 py-4 text-sm font-semibold tracking-wide hover:bg-white/90 transition-colors"
+            >
+              Start Your Free Trial <ArrowRight size={16} />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Services Detail */}
       <section className="section-padding bg-background">
         <div className="container space-y-24">
@@ -178,12 +208,22 @@ const Services = () => {
                 <service.icon size={36} className="text-foreground mb-5" strokeWidth={1.5} />
                 <h2 className="font-display text-3xl font-bold text-foreground mb-4">{service.title}</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">{service.desc}</p>
-                <Link
-                  to="/contact"
-                  className="inline-flex items-center text-sm font-medium text-foreground hover:opacity-70 transition-opacity"
-                >
-                  Request a quote <ChevronRight size={16} className="ml-1" />
-                </Link>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                  <Link
+                    to="/contact"
+                    className="inline-flex items-center text-sm font-medium text-foreground hover:opacity-70 transition-opacity"
+                  >
+                    Request a quote <ChevronRight size={16} className="ml-1" />
+                  </Link>
+                  {service.title === "Networking" && (
+                    <Link
+                      to="/networking"
+                      className="inline-flex items-center text-sm font-medium text-foreground hover:opacity-70 transition-opacity"
+                    >
+                      View networking pricing <ChevronRight size={16} className="ml-1" />
+                    </Link>
+                  )}
+                </div>
               </div>
               <div className="bg-secondary p-8">
                 <h4 className="text-sm font-semibold tracking-[0.2em] uppercase text-muted-foreground mb-4">Key Features</h4>

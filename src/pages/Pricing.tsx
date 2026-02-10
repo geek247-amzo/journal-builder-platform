@@ -147,6 +147,35 @@ const Pricing = () => {
         </div>
       </section>
 
+      {/* Free Trial Banner */}
+      <section className="section-padding bg-primary border-t border-primary-foreground/10">
+        <div className="container text-center">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+          >
+            <p className="text-sm font-medium tracking-[0.3em] uppercase text-primary-foreground/50 mb-3">
+              Limited Offer
+            </p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+              Try Our Managed IT Support — Free for 30 Days
+            </h2>
+            <p className="text-primary-foreground/60 max-w-lg mx-auto mb-8 leading-relaxed">
+              No commitment. No credit card. Experience proactive monitoring, unlimited remote support, and 24/7 NOC coverage — completely free for your first month.
+            </p>
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-2 bg-white text-black px-10 py-4 text-sm font-semibold tracking-wide hover:bg-white/90 transition-colors"
+            >
+              Start Your Free Trial <ArrowRight size={16} />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Interactive Cost Estimator */}
       <section className="section-padding bg-background">
         <div className="container">
