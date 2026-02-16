@@ -8,11 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, UserPlus } from "lucide-react";
 import { fetchUsers, type Profile } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const AdminUsers = () => {
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -50,7 +59,27 @@ const AdminUsers = () => {
           <h2 className="font-display text-2xl font-bold text-foreground mb-1">User Management</h2>
           <p className="text-sm text-muted-foreground">{users.length} registered clients</p>
         </div>
-        <Button className="gap-2"><UserPlus size={16} /> Add Client</Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2"><UserPlus size={16} /> Add Client</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Client</DialogTitle>
+              <DialogDescription>
+                Client creation is handled via Supabase Auth. Invite or create a user in the Supabase dashboard, then assign their role in the profiles table.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <p>To add a client:</p>
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Create the user in Supabase Auth.</li>
+                <li>Confirm a profile row exists in the <code>profiles</code> table.</li>
+                <li>Set <code>role</code> to <code>client</code> (or <code>admin</code>).</li>
+              </ol>
+            </div>
+          </DialogContent>
+        </Dialog>
       </motion.div>
 
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1}>
