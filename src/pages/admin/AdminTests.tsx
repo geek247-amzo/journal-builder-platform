@@ -23,6 +23,14 @@ const AdminTests = () => {
   const [dryRun, setDryRun] = useState(true);
   const [loadingQuote, setLoadingQuote] = useState(false);
 
+  const getAccessToken = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    const token = data.session?.access_token;
+    if (!token) throw new Error("No active session token. Please sign in again.");
+    return token;
+  };
+
   const envSummary = useMemo(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -245,8 +253,10 @@ const AdminTests = () => {
                 onClick={() =>
                   run("quotePdf", async () => {
                     if (!quoteId.trim()) throw new Error("Enter a quote public ID first.");
+                    const token = await getAccessToken();
                     const { data, error } = await supabase.functions.invoke("quote-pdf", {
                       body: { quoteId: quoteId.trim() },
+                      headers: { Authorization: `Bearer ${token}` },
                     });
                     if (error) throw error;
                     const size = data?.base64?.length ?? 0;
@@ -273,8 +283,10 @@ const AdminTests = () => {
                 onClick={() =>
                   run("sendQuote", async () => {
                     if (!quoteId.trim()) throw new Error("Enter a quote public ID first.");
+                    const token = await getAccessToken();
                     const { data, error } = await supabase.functions.invoke("send-quote", {
                       body: { quoteId: quoteId.trim(), dryRun },
+                      headers: { Authorization: `Bearer ${token}` },
                     });
                     if (error) throw error;
                     if (!data?.ok) throw new Error("Function did not return ok.");
