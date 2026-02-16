@@ -219,6 +219,9 @@ const buildPdf = ({ quote, items, acceptUrl, slaUrl }) =>
     doc.font("Helvetica").fontSize(9).fillColor("#555");
     doc.text("One-Time Setup Fee: Included", 320, doc.y, { width: 270, align: "right" });
 
+    doc.moveDown(0.6);
+    doc.x = doc.page.margins.left;
+
     sectionTitle("Contract Terms");
     doc.font("Helvetica").fontSize(9);
     [
