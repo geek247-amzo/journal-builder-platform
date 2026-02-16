@@ -81,24 +81,6 @@ const Login = () => {
     });
   };
 
-  const handleOAuth = async (provider: "google" | "azure") => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/login`,
-      },
-    });
-    if (error) {
-      setLoading(false);
-      toast({
-        title: "SSO failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <section className="min-h-[80vh] flex items-center justify-center">
       <motion.div
@@ -140,21 +122,6 @@ const Login = () => {
           >
             Sign Up
           </button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 mb-6">
-          <Button type="button" variant="outline" onClick={() => handleOAuth("google")} disabled={loading}>
-            Continue with Google
-          </Button>
-          <Button type="button" variant="outline" onClick={() => handleOAuth("azure")} disabled={loading}>
-            Continue with Microsoft
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-6">
-          <span className="flex-1 border-t border-border" />
-          <span>or</span>
-          <span className="flex-1 border-t border-border" />
         </div>
 
         <form onSubmit={mode === "signin" ? handleLogin : handleSignup} className="space-y-5">
