@@ -59,23 +59,40 @@ const buildPdf = ({ quote, items, acceptUrl, slaUrl }) =>
     const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const sectionTitle = (text) => {
       doc.moveDown(0.8);
-      doc.font("Helvetica-Bold").fontSize(11).fillColor("#111").text(text.toUpperCase());
+      const y = doc.y;
+      doc.rect(doc.page.margins.left, y + 2, 6, 12).fill("#111");
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(11)
+        .fillColor("#111")
+        .text(text.toUpperCase(), doc.page.margins.left + 12, y);
       doc.moveDown(0.3);
     };
 
-    doc.fontSize(10).fillColor("#111");
-    doc.font("Helvetica-Bold").fontSize(16).text("CONTINUATE", { characterSpacing: 1 });
-    doc.font("Helvetica").fontSize(11).text("IT Services");
+    // Cover page
+    doc.rect(0, 0, doc.page.width, 220).fill("#111");
+    doc.fillColor("#fff");
+    doc.font("Helvetica-Bold").fontSize(28).text("Business Proposal", 40, 70);
+    doc.font("Helvetica").fontSize(20).text("Managed Security Services", 40, 105);
+    doc.moveTo(40, 150).lineTo(260, 150).lineWidth(2).strokeColor("#fff").stroke();
+    doc.font("Helvetica").fontSize(11).fillColor("#fff");
+    doc.text(`Prepared for: ${quote.customer ?? "—"}`, 40, 170);
+    doc.text(`Proposal Ref: ${quote.public_id}`, 40, 188);
+
+    doc.fillColor("#111");
+    doc.font("Helvetica-Bold").fontSize(14).text("CONTINUATE IT SERVICES", 40, 260);
     doc.font("Helvetica").fontSize(10).text("377 Rivonia Boulevard, Sandton, 2196");
     doc.text("info@continuate.co.za • 073 209 9100");
-    doc.moveDown(0.6);
+    doc.text(`Date: ${new Date().toLocaleDateString("en-ZA")}`);
+
+    doc.addPage();
+    doc.fontSize(10).fillColor("#111");
 
     doc.font("Helvetica-Bold").fontSize(16).text("Managed Security Services Proposal");
     doc.moveDown(0.3);
     doc.font("Helvetica").fontSize(9).fillColor("#444");
     doc.text(`Client Name: ${quote.customer ?? "—"}`);
     doc.text(`Prepared By: Continuate IT Services`);
-    doc.text(`Date: ${new Date().toLocaleDateString("en-ZA")}`);
     doc.text(`Proposal Reference #: ${quote.public_id}`);
     doc.text(`Contact: ${quote.contact_name ?? "—"} (${quote.contact_email ?? "—"})`);
     doc.text(`Owner: ${quote.owner ?? "—"}`);
