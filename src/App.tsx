@@ -23,6 +23,7 @@ import PortalHelpdesk from "./pages/portal/PortalHelpdesk";
 import PortalAccount from "./pages/portal/PortalAccount";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminLeads from "./pages/admin/AdminLeads";
 import AdminTickets from "./pages/admin/AdminTickets";
 import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 import AdminReports from "./pages/admin/AdminReports";
@@ -85,6 +86,7 @@ const App = () => (
           >
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="leads" element={<AdminLeads />} />
             <Route path="tickets" element={<AdminTickets />} />
             <Route path="subscriptions" element={<AdminSubscriptions />} />
             <Route path="reports" element={<AdminReports />} />

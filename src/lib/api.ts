@@ -126,6 +126,20 @@ export type Invoice = {
   createdAt?: string | null;
 };
 
+export type Lead = {
+  id: string;
+  name?: string | null;
+  email: string;
+  company?: string | null;
+  devices: number;
+  cybersecurity: boolean;
+  backup: boolean;
+  estimateLow: number;
+  estimateHigh: number;
+  quotePublicId?: string | null;
+  createdAt?: string | null;
+};
+
 export type ReportSummary = {
   kpis: Array<{ label: string; value: number; change?: string | null; format?: string }>;
   topIssues: Array<{ category: string; count: number; pct: string }>;
@@ -297,6 +311,20 @@ const normalizeInvoice = (row: any, subscriptionPublicId?: string | null): Invoi
   currency: row.currency,
   dueDate: row.due_date,
   paidAt: row.paid_at,
+  createdAt: row.created_at,
+});
+
+const normalizeLead = (row: any): Lead => ({
+  id: row.id,
+  name: row.name,
+  email: row.email,
+  company: row.company,
+  devices: Number(row.devices || 0),
+  cybersecurity: Boolean(row.cybersecurity),
+  backup: Boolean(row.backup),
+  estimateLow: Number(row.estimate_low || 0),
+  estimateHigh: Number(row.estimate_high || 0),
+  quotePublicId: row.quote_public_id ?? null,
   createdAt: row.created_at,
 });
 
@@ -594,6 +622,12 @@ export const fetchInvoices = async (params?: { subscriptionId?: string; customer
   const { data, error } = await supabase.from("invoices").select("*").order("created_at", { ascending: false });
   if (error) handleError(error);
   return (data ?? []).map(normalizeInvoice) as Invoice[];
+};
+
+export const fetchLeads = async (): Promise<Lead[]> => {
+  const { data, error } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+  if (error) handleError(error);
+  return (data ?? []).map(normalizeLead);
 };
 
 export const fetchReportSummary = async (): Promise<ReportSummary> => {

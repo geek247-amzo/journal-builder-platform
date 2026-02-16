@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
@@ -17,6 +19,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { fadeUp } from "@/lib/animations";
+import { useToast } from "@/hooks/use-toast";
 
 function calculateEstimate(devices: number, cybersecurity: boolean, backup: boolean) {
   const baseRate = 220;
@@ -36,6 +39,26 @@ function calculateEstimate(devices: number, cybersecurity: boolean, backup: bool
 
 function formatZAR(amount: number) {
   return `R${amount.toLocaleString("en-ZA")}`;
+}
+
+function buildLineItems(devices: number, cybersecurity: boolean, backup: boolean) {
+  const items = [
+    {
+      name: "Managed IT Support",
+      qty: devices,
+      unitPrice: 220,
+    },
+  ];
+  if (cybersecurity) {
+    items.push({ name: "Cybersecurity", qty: devices, unitPrice: 125 });
+  }
+  if (backup) {
+    items.push({ name: "Backup & Disaster Recovery", qty: devices, unitPrice: 75 });
+  }
+  return items.map((item) => ({
+    ...item,
+    total: item.qty * item.unitPrice,
+  }));
 }
 
 const includedFeatures = [
@@ -111,11 +134,18 @@ const Pricing = () => {
   const [devices, setDevices] = useState(25);
   const [cybersecurity, setCybersecurity] = useState(false);
   const [backup, setBackup] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [sending, setSending] = useState(false);
+  const { toast } = useToast();
 
   const estimate = useMemo(
     () => calculateEstimate(devices, cybersecurity, backup),
     [devices, cybersecurity, backup]
   );
+  const items = useMemo(() => buildLineItems(devices, cybersecurity, backup), [devices, cybersecurity, backup]);
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <>
@@ -281,6 +311,105 @@ const Pricing = () => {
                 >
                   Get Your Custom Quote <ArrowRight size={16} />
                 </Link>
+              </div>
+            </div>
+
+            {/* Quotation preview + share */}
+            <div className="mt-10 border border-border p-8 md:p-10">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Estimate Preview</p>
+                  <h3 className="font-display text-2xl font-bold text-foreground">Quotation Summary</h3>
+                </div>
+                <div className="text-sm text-muted-foreground">All prices exclusive of VAT.</div>
+              </div>
+
+              <div className="border border-border">
+                <div className="grid grid-cols-4 text-xs uppercase tracking-wide text-muted-foreground border-b border-border bg-secondary px-4 py-3">
+                  <div>Service</div>
+                  <div className="text-right">Qty</div>
+                  <div className="text-right">Unit</div>
+                  <div className="text-right">Monthly Total</div>
+                </div>
+                {items.map((item) => (
+                  <div key={item.name} className="grid grid-cols-4 px-4 py-3 text-sm border-b border-border last:border-b-0">
+                    <div className="text-foreground">{item.name}</div>
+                    <div className="text-right text-muted-foreground">{item.qty}</div>
+                    <div className="text-right text-muted-foreground">{formatZAR(item.unitPrice)}</div>
+                    <div className="text-right text-foreground">{formatZAR(item.total)}</div>
+                  </div>
+                ))}
+                <div className="grid grid-cols-4 px-4 py-3 text-sm border-t border-border bg-secondary/40">
+                  <div className="col-span-3 text-right text-muted-foreground">Estimated Monthly Total</div>
+                  <div className="text-right font-semibold text-foreground">{formatZAR(subtotal)}</div>
+                </div>
+                <div className="px-4 py-3 text-xs text-muted-foreground">
+                  Estimate range: {formatZAR(estimate.low)} – {formatZAR(estimate.high)} (environment-dependent).
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-muted-foreground">Full Name</label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" />
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-muted-foreground">Work Email</label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-muted-foreground">Company (Optional)</label>
+                  <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company name" />
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <p className="text-xs text-muted-foreground">
+                  We’ll email this estimate and create a lead in our system for follow‑up.
+                </p>
+                <Button
+                  disabled={sending}
+                  onClick={async () => {
+                    if (!email || !devices) {
+                      toast({ title: "Missing details", description: "Please add your email and device count." });
+                      return;
+                    }
+                    try {
+                      setSending(true);
+                      const response = await fetch("/api/share-estimate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          name,
+                          email,
+                          company,
+                          devices,
+                          cybersecurity,
+                          backup,
+                        }),
+                      });
+                      if (!response.ok) {
+                        const text = await response.text();
+                        throw new Error(text || "Unable to send estimate.");
+                      }
+                      toast({
+                        title: "Estimate sent",
+                        description: "Your quotation has been emailed. We’ll be in touch shortly.",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Send failed",
+                        description: error instanceof Error ? error.message : "Unable to send estimate.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setSending(false);
+                    }
+                  }}
+                  className="bg-primary text-primary-foreground px-8"
+                >
+                  {sending ? "Sending..." : "Share Quotation via Email"}
+                </Button>
               </div>
             </div>
           </motion.div>
