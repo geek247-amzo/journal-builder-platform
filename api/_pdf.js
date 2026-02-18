@@ -22,7 +22,11 @@ export const normalizeList = (value) => {
 
 export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight }) =>
   new Promise((resolve) => {
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    const doc = new PDFDocument({
+      size: "A4",
+      margins: { top: 80, left: 40, right: 40, bottom: 50 },
+      bufferPages: true,
+    });
     const chunks = [];
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -31,8 +35,19 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
     const assumptions = normalizeList(quote.assumptions);
     const terms = normalizeList(quote.terms);
     const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const bodyTextColor = "#333";
+    const bodyFontSize = 10;
+    const subheadingFontSize = 10;
+    const contentBottomY = () => doc.page.height - doc.page.margins.bottom - 24;
+    const setBodyStyle = () => doc.font("Helvetica").fontSize(bodyFontSize).fillColor(bodyTextColor);
+    const ensureSpace = (requiredHeight = 24) => {
+      if (doc.y + requiredHeight > contentBottomY()) {
+        doc.addPage();
+      }
+    };
 
     const sectionTitle = (text) => {
+      ensureSpace(30);
       doc.moveDown(0.9);
       const y = doc.y;
       doc.rect(doc.page.margins.left, y + 2, 4, 12).fill("#111");
@@ -42,17 +57,15 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
         .fillColor("#111")
         .text(text.toUpperCase(), doc.page.margins.left + 10, y);
       doc.moveDown(0.35);
+      setBodyStyle();
     };
 
-    let drawingHeader = false;
-    const drawHeaderFooter = (pageIndex) => {
+    const drawHeaderFooter = (pageIndex, totalPages) => {
       if (pageIndex === 0) return;
-      if (drawingHeader) return;
-      drawingHeader = true;
       const topY = 28;
       if (logoLight) {
         try {
-          doc.image(logoLight, doc.page.margins.left, topY, { width: 70 });
+          doc.image(logoLight, doc.page.margins.left, topY, { width: 90 });
         } catch {
           // ignore logo render errors
         }
@@ -64,36 +77,55 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
         .lineTo(doc.page.width - doc.page.margins.right, 60)
         .stroke();
 
-      const footerY = doc.page.height - 40;
+      const footerTextY = doc.page.height - doc.page.margins.bottom - 10;
       doc
         .strokeColor("#e5e5e5")
         .lineWidth(1)
-        .moveTo(doc.page.margins.left, footerY - 10)
-        .lineTo(doc.page.width - doc.page.margins.right, footerY - 10)
+        .moveTo(doc.page.margins.left, footerTextY - 4)
+        .lineTo(doc.page.width - doc.page.margins.right, footerTextY - 4)
         .stroke();
       doc
         .font("Helvetica")
         .fontSize(8)
         .fillColor("#666")
-        .text(`Page ${pageIndex + 1}`, doc.page.width - doc.page.margins.right - 60, footerY - 6, {
-          width: 60,
-          align: "right",
-        });
-      doc.y = 80;
-      drawingHeader = false;
+        .text(
+          `Page ${pageIndex} of ${Math.max(totalPages - 1, 1)}`,
+          doc.page.width - doc.page.margins.right - 90,
+          footerTextY,
+          {
+            width: 90,
+            align: "right",
+            lineBreak: false,
+          }
+        );
     };
 
-    let pageIndex = 0;
-    doc.on("pageAdded", () => {
-      pageIndex += 1;
-      drawHeaderFooter(pageIndex);
-    });
+    const drawSimpleList = (lines) => {
+      lines.forEach((line) => {
+        ensureSpace(16);
+        doc.text(`• ${line}`, { width: pageWidth });
+      });
+    };
+
+    const drawPricingHeader = (tableY, colX, colW, rowH) => {
+      doc.rect(40, tableY, 515, rowH).fill("#f3f4f6");
+      doc.font("Helvetica-Bold").fontSize(bodyFontSize).fillColor("#333");
+      doc.text("Service Component", colX[0], tableY + 5, { width: colW[0] });
+      doc.text("Users", colX[1], tableY + 5, { width: colW[1], align: "right" });
+      doc.text("Unit", colX[2], tableY + 5, { width: colW[2], align: "right" });
+      doc.text("Monthly Total", colX[3], tableY + 5, {
+        width: colW[3],
+        align: "right",
+        lineBreak: false,
+      });
+      setBodyStyle();
+    };
 
     // Cover (premium, minimal)
     doc.rect(0, 0, doc.page.width, doc.page.height).fill("#111");
     if (logoDark) {
       try {
-        doc.image(logoDark, 40, 40, { width: 130 });
+        doc.image(logoDark, 40, 40, { width: 180 });
       } catch {
         // ignore
       }
@@ -102,16 +134,15 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
     doc.font("Helvetica").fontSize(12).text("Managed Security Services Proposal", 40, 140);
     doc.font("Helvetica-Bold").fontSize(28).text(quote.customer ?? "Client", 40, 165);
     doc.moveTo(40, 210).lineTo(260, 210).lineWidth(2).strokeColor("#fff").stroke();
-    doc.font("Helvetica").fontSize(11).text("Prepared by: Continuate IT Services", 40, 235);
+    doc.font("Helvetica").fontSize(11).text("Prepared by: Continuate IT Services (Pty) Ltd.", 40, 235);
     doc.text(`Proposal Reference: ${quote.public_id}`, 40, 255);
     doc.text(`Date: ${new Date().toLocaleDateString("en-ZA")}`, 40, 275);
     doc.text("Confidential & Proprietary", 40, 310);
 
     doc.addPage();
-    doc.fontSize(10).fillColor("#111");
+    setBodyStyle();
 
     sectionTitle("Executive Overview");
-    doc.font("Helvetica").fontSize(9).fillColor("#333");
     doc.text(
       "In today’s evolving threat landscape, financial institutions are primary targets for increasingly sophisticated cyber attacks.",
       { width: pageWidth }
@@ -130,14 +161,14 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
     );
 
     sectionTitle("Why Continuate IT Services");
-    [
+    drawSimpleList([
       "24/7 Security Operations Monitoring",
       "Financial Sector Threat Awareness",
       "Proactive Threat Hunting",
       "Compliance-Driven Security Framework",
       "Dedicated Account Management",
       "Transparent, Predictable Pricing",
-    ].forEach((line) => doc.text(`• ${line}`, { width: pageWidth }));
+    ]);
 
     sectionTitle("Client Overview");
     doc.text(`Client Organization: ${quote.customer ?? "—"}`, { width: pageWidth });
@@ -145,26 +176,30 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
     doc.text("Industry: —", { width: pageWidth });
     doc.moveDown(0.2);
     doc.text("Current Environment Summary:", { width: pageWidth });
-    ["Number of Users:", "Number of Endpoints:", "Servers (On-Prem / Cloud):", "Cloud Platforms:", "Compliance Requirements:"].forEach(
-      (line) => doc.text(`• ${line}`, { width: pageWidth })
-    );
+    drawSimpleList([
+      "Number of Users:",
+      "Number of Endpoints:",
+      "Servers (On-Prem / Cloud):",
+      "Cloud Platforms:",
+      "Compliance Requirements:",
+    ]);
 
     sectionTitle("Scope of Services");
-    doc.font("Helvetica-Bold").text("Core Security Operations", { width: pageWidth });
-    doc.font("Helvetica").fontSize(9);
-    [
+    doc.font("Helvetica-Bold").fontSize(subheadingFontSize).fillColor("#111").text("Core Security Operations", { width: pageWidth });
+    setBodyStyle();
+    drawSimpleList([
       "Security Monitoring (24/7 SOC): Continuous real-time monitoring of your environment.",
       "Managed EDR / XDR: Advanced endpoint threat detection and automated containment.",
       "SIEM & Log Management: Centralized event correlation and anomaly detection.",
       "Firewall & Network Security Management: Policy control, rule audits, and traffic monitoring.",
       "Incident Response Management: Coordinated containment, remediation, and reporting.",
       "Vulnerability & Patch Oversight: Risk-based remediation planning.",
-    ].forEach((item) => doc.text(`• ${item}`, { width: pageWidth }));
+    ]);
 
     doc.moveDown(0.4);
-    doc.font("Helvetica-Bold").text("Optional Enhancements", { width: pageWidth });
-    doc.font("Helvetica").fontSize(9);
-    [
+    doc.font("Helvetica-Bold").fontSize(subheadingFontSize).fillColor("#111").text("Optional Enhancements", { width: pageWidth });
+    setBodyStyle();
+    drawSimpleList([
       "Managed Email Security",
       "Dark Web Monitoring",
       "Security Awareness Training",
@@ -172,108 +207,126 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
       "Penetration Testing",
       "Cloud Security Posture Management",
       "Backup & Disaster Recovery",
-    ].forEach((item) => doc.text(`• ${item}`, { width: pageWidth }));
+    ]);
 
     sectionTitle("Service Levels");
-    doc.font("Helvetica").fontSize(9).fillColor("#333");
     doc.text(
       "Our Service Level commitments are aligned to business risk impact and operational continuity requirements.",
       { width: pageWidth }
     );
     doc.moveDown(0.4);
-    const svcTableTop = doc.y;
-    const svcColX = [40, 210, 360, 480];
-    doc.font("Helvetica-Bold").fontSize(9).fillColor("#555");
-    doc.text("Priority", svcColX[0], svcTableTop);
-    doc.text("Response Time", svcColX[1], svcTableTop);
-    doc.text("Resolution Target", svcColX[2], svcTableTop);
-    doc.moveDown(0.6);
-    doc.strokeColor("#eee").moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-    doc.moveDown(0.4);
-    doc.font("Helvetica").fontSize(9).fillColor("#111");
-    [
+    const svcColX = [40, 170, 340];
+    const svcColW = [130, 170, 215];
+    const svcRowH = 18;
+    const svcRows = [
       ["Critical", "< 1 Hour", "4–8 Hours"],
       ["High", "< 4 Hours", "24 Hours"],
       ["Medium", "< 8 Hours", "2–3 Business Days"],
       ["Low", "1 Business Day", "Scheduled"],
-    ].forEach((row) => {
-      doc.text(row[0], svcColX[0], doc.y);
-      doc.text(row[1], svcColX[1], doc.y);
-      doc.text(row[2], svcColX[2], doc.y);
-      doc.moveDown(0.6);
+    ];
+    ensureSpace(svcRowH * (svcRows.length + 2));
+    const svcTableTop = doc.y;
+    doc.rect(40, svcTableTop, 515, svcRowH).fill("#f3f4f6");
+    doc.font("Helvetica-Bold").fontSize(bodyFontSize).fillColor("#333");
+    doc.text("Priority", svcColX[0], svcTableTop + 5, { width: svcColW[0] });
+    doc.text("Response Time", svcColX[1], svcTableTop + 5, { width: svcColW[1] });
+    doc.text("Resolution Target", svcColX[2], svcTableTop + 5, { width: svcColW[2] });
+    svcRows.forEach((row, index) => {
+      const rowY = svcTableTop + svcRowH * (index + 1);
+      if (index % 2 === 1) {
+        doc.rect(40, rowY, 515, svcRowH).fill("#fafafa");
+      }
+      setBodyStyle();
+      doc.text(row[0], svcColX[0], rowY + 5, { width: svcColW[0] });
+      doc.text(row[1], svcColX[1], rowY + 5, { width: svcColW[1] });
+      doc.text(row[2], svcColX[2], rowY + 5, { width: svcColW[2] });
     });
+    doc.y = svcTableTop + svcRowH * (svcRows.length + 1) + 8;
 
     sectionTitle("Implementation Plan");
-    doc.font("Helvetica-Bold").text("Phase 1 – Assessment & Discovery", { width: pageWidth });
-    doc.font("Helvetica").fontSize(9);
-    ["Environment review", "Risk analysis", "Security gap identification"].forEach((line) =>
-      doc.text(`• ${line}`, { width: pageWidth })
-    );
+    doc.font("Helvetica-Bold").fontSize(subheadingFontSize).fillColor("#111").text("Phase 1 – Assessment & Discovery", { width: pageWidth });
+    setBodyStyle();
+    drawSimpleList(["Environment review", "Risk analysis", "Security gap identification"]);
     doc.moveDown(0.4);
-    doc.font("Helvetica-Bold").text("Phase 2 – Deployment", { width: pageWidth });
-    doc.font("Helvetica").fontSize(9);
-    ["Agent installation", "Firewall integration", "Log ingestion configuration", "Baseline security hardening"].forEach(
-      (line) => doc.text(`• ${line}`, { width: pageWidth })
-    );
+    doc.font("Helvetica-Bold").fontSize(subheadingFontSize).fillColor("#111").text("Phase 2 – Deployment", { width: pageWidth });
+    setBodyStyle();
+    drawSimpleList(["Agent installation", "Firewall integration", "Log ingestion configuration", "Baseline security hardening"]);
     doc.moveDown(0.4);
-    doc.font("Helvetica-Bold").text("Phase 3 – Monitoring & Optimization", { width: pageWidth });
-    doc.font("Helvetica").fontSize(9);
-    ["Continuous monitoring", "Monthly security reporting", "Quarterly strategy review"].forEach((line) =>
-      doc.text(`• ${line}`, { width: pageWidth })
-    );
+    doc.font("Helvetica-Bold").fontSize(subheadingFontSize).fillColor("#111").text("Phase 3 – Monitoring & Optimization", { width: pageWidth });
+    setBodyStyle();
+    drawSimpleList(["Continuous monitoring", "Monthly security reporting", "Quarterly strategy review"]);
     doc.moveDown(0.3);
     doc.text("Estimated Implementation Timeline: 2–6 Weeks", { width: pageWidth });
 
     sectionTitle("Reporting & Communication");
-    [
+    drawSimpleList([
       "Monthly Security Summary Report",
       "Incident Reports (as required)",
       "Quarterly Security Review Meeting",
       "Dedicated Account Manager",
       "24/7 Emergency Contact",
-    ].forEach((line) => doc.text(`• ${line}`, { width: pageWidth }));
+    ]);
 
     sectionTitle("Pricing Structure");
-    doc.font("Helvetica-Bold").text("Investment Summary", { width: pageWidth });
-    doc.font("Helvetica").fontSize(9).fillColor("#333");
+    doc.font("Helvetica-Bold").fontSize(subheadingFontSize).fillColor("#111").text("Investment Summary", { width: pageWidth });
+    setBodyStyle();
     doc.text("Monthly Managed Security Investment", { width: pageWidth });
     doc.moveDown(0.2);
-    const tableTop = doc.y;
-    const colX = [40, 250, 350, 430, 510];
-    doc.fontSize(9).fillColor("#555");
-    doc.text("Service Component", colX[0], tableTop);
-    doc.text("Users", colX[1], tableTop, { width: 80, align: "right" });
-    doc.text("Unit", colX[2], tableTop, { width: 80, align: "right" });
-    doc.text("Monthly Total", colX[3], tableTop, { width: 110, align: "right" });
-    doc.moveDown(0.6);
-    doc.strokeColor("#eee").moveTo(40, doc.y).lineTo(555, doc.y).stroke();
+    const colX = [40, 260, 330, 410];
+    const colW = [220, 70, 80, 145];
+    const rowH = 18;
+    ensureSpace(rowH * 3);
+    let tableTop = doc.y;
+    drawPricingHeader(tableTop, colX, colW, rowH);
 
-    doc.moveDown(0.4);
-    doc.fillColor("#111").font("Helvetica").fontSize(9);
+    let rowIndex = 0;
+    let rowY = tableTop + rowH;
     if (!items?.length) {
-      doc.text("No line items added.", 40, doc.y);
+      if (rowY + rowH > contentBottomY()) {
+        doc.addPage();
+        tableTop = doc.y;
+        drawPricingHeader(tableTop, colX, colW, rowH);
+        rowY = tableTop + rowH;
+      }
+      doc.rect(40, rowY, 515, rowH).fill("#fafafa");
+      setBodyStyle();
+      doc.fillColor("#111").text("No line items added.", 44, rowY + 5, { width: 507 });
+      doc.y = rowY + rowH + 8;
     } else {
       items.forEach((item) => {
+        if (rowY + rowH > contentBottomY()) {
+          doc.addPage();
+          tableTop = doc.y;
+          drawPricingHeader(tableTop, colX, colW, rowH);
+          rowY = tableTop + rowH;
+        }
+        if (rowIndex % 2 === 1) {
+          doc.rect(40, rowY, 515, rowH).fill("#fafafa");
+        }
         const total = Number(item.unit_price ?? 0) * Number(item.quantity ?? 0);
-        doc.text(item.name ?? "Service", colX[0], doc.y, { width: 200 });
-        doc.text(String(item.quantity ?? 0), colX[1], doc.y, { width: 80, align: "right" });
-        doc.text(formatCurrency(item.unit_price ?? 0, currency), colX[2], doc.y, {
-          width: 80,
+        setBodyStyle();
+        doc.fillColor("#111").text(item.name ?? "Service", colX[0] + 4, rowY + 5, { width: colW[0] - 8, ellipsis: true });
+        doc.text(String(item.quantity ?? 0), colX[1], rowY + 5, { width: colW[1], align: "right" });
+        doc.text(formatCurrency(item.unit_price ?? 0, currency), colX[2], rowY + 5, {
+          width: colW[2],
           align: "right",
         });
-        doc.text(formatCurrency(total, currency), colX[3], doc.y, { width: 110, align: "right" });
-        doc.moveDown(0.8);
+        doc.text(formatCurrency(total, currency), colX[3], rowY + 5, { width: colW[3], align: "right" });
+        rowY += rowH;
+        rowIndex += 1;
       });
+      doc.y = rowY + 8;
     }
 
     doc.moveDown(0.3);
     doc.strokeColor("#eee").moveTo(40, doc.y).lineTo(555, doc.y).stroke();
     doc.moveDown(0.5);
-    doc.font("Helvetica-Bold").fontSize(14).fillColor("#111");
+    doc.font("Helvetica-Bold").fontSize(subheadingFontSize).fillColor("#111");
     doc.text("Total Monthly Investment", 40, doc.y, { continued: true });
     doc.text(` ${formatCurrency(quote.total ?? 0, currency)} (Excl. VAT)`);
     doc.moveDown(0.4);
-    doc.font("Helvetica").fontSize(9).fillColor("#555");
+    setBodyStyle();
+    doc.fillColor("#555");
     doc.text("One-Time Setup Fee: Included", { width: pageWidth });
     doc.text("Implementation Timeline: 2–6 Weeks", { width: pageWidth });
     doc.moveDown(0.4);
@@ -286,33 +339,35 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
     doc.x = doc.page.margins.left;
 
     sectionTitle("Contract Terms");
-    doc.font("Helvetica").fontSize(9);
-    [
+    drawSimpleList([
       "Agreement Term: 12 / 24 / 36 Months",
       "Billing Frequency: Monthly",
       "Auto-Renewal: Yes / No",
       "Termination Clause: As per master services agreement",
-    ].forEach((line) => doc.text(`• ${line}`, { width: pageWidth }));
+    ]);
 
     sectionTitle("Assumptions & Exclusions");
     if (assumptions.length) {
-      assumptions.forEach((a) => doc.text(`• ${a}`, { width: pageWidth }));
+      assumptions.forEach((a) => {
+        ensureSpace(16);
+        doc.text(`• ${a}`, { width: pageWidth });
+      });
     } else {
-      [
+      drawSimpleList([
         "Client provides required administrative access.",
         "Internet connectivity maintained at all monitored locations.",
         "Hardware upgrades not included unless specified.",
         "Third-party licensing costs not included unless stated.",
-      ].forEach((line) => doc.text(`• ${line}`, { width: pageWidth }));
+      ]);
     }
 
     sectionTitle("Governance & Compliance Alignment");
-    [
+    drawSimpleList([
       "NIST Cybersecurity Framework",
       "ISO 27001 Controls",
       "CIS Benchmarks",
       "Applicable data protection standards",
-    ].forEach((line) => doc.text(`• ${line}`, { width: pageWidth }));
+    ]);
 
     sectionTitle("Coverage & Eligibility");
     doc.text(
@@ -321,15 +376,15 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
     );
 
     sectionTitle("Pricing Notes");
-    [
+    drawSimpleList([
       "All prices are exclusive of VAT.",
       "No surprise charges: all inclusions and billable extras are defined upfront.",
       "Included service categories: Infrastructure Management, Remote Monitoring & Management, Maintenance, End-user Support.",
       "Additional services are quoted and approved before work begins.",
-    ].forEach((line) => doc.text(`• ${line}`, { width: pageWidth }));
+    ]);
 
     sectionTitle("Agreement & Acceptance");
-    doc.font("Helvetica").fontSize(9);
+    ensureSpace(130);
     const accTop = doc.y;
     const accColX = [40, 300];
     doc.text("For Client", accColX[0], accTop);
@@ -348,7 +403,6 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
     doc.text("Date: ____________", accColX[1], doc.y);
 
     sectionTitle("Next Steps");
-    doc.font("Helvetica").fontSize(9);
     if (acceptUrl) {
       doc.fillColor("#111").text("Accept this quote online: ", { continued: true });
       doc.fillColor("#0a58ca").text(acceptUrl, { link: acceptUrl, underline: true });
@@ -365,5 +419,10 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
     doc.font("Helvetica").fontSize(8).fillColor("#666");
     doc.text(`Continuate IT Services • ${new Date().toLocaleDateString("en-ZA")}`);
 
+    const pages = doc.bufferedPageRange();
+    for (let page = pages.start; page < pages.start + pages.count; page += 1) {
+      doc.switchToPage(page);
+      drawHeaderFooter(page, pages.count);
+    }
     doc.end();
   });
