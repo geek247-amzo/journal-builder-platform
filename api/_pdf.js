@@ -114,6 +114,176 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
       }
       return "";
     };
+    const isServiceQuote = () => {
+      const quoteName = String(quote.name ?? "").toLowerCase();
+      if (quoteName.includes("service quote")) return true;
+      if (!items?.length) return false;
+      return items.every((item) => {
+        const hasSlaTier = Boolean(item?.sla_tier);
+        const hasKpis = Array.isArray(item?.kpi_tags) && item.kpi_tags.length > 0;
+        return !hasSlaTier && !hasKpis;
+      });
+    };
+    const drawSimplePageNumbers = () => {
+      const pages = doc.bufferedPageRange();
+      for (let page = pages.start; page < pages.start + pages.count; page += 1) {
+        doc.switchToPage(page);
+        doc
+          .font("Helvetica")
+          .fontSize(8)
+          .fillColor("#666")
+          .text(`Page ${page + 1} of ${pages.count}`, doc.page.width - doc.page.margins.right - 90, doc.page.height - 36, {
+            width: 90,
+            align: "right",
+            lineBreak: false,
+          });
+      }
+    };
+    const drawServiceQuotePdf = () => {
+      const tableColX = [40, 180, 410, 450, 510];
+      const tableColW = [140, 230, 40, 60, 45];
+      const rowH = 18;
+      const serviceBottomY = () => doc.page.height - doc.page.margins.bottom - 28;
+      const drawServiceHeader = () => {
+        if (logoLight || logoDark) {
+          try {
+            doc.image(logoLight ?? logoDark, 40, 35, { width: 120 });
+          } catch {
+            // ignore logo render failures
+          }
+        }
+        doc.font("Helvetica-Bold").fontSize(18).fillColor("#111").text("Quotation", 40, 55, { align: "right" });
+        doc
+          .font("Helvetica")
+          .fontSize(10)
+          .fillColor("#333")
+          .text(`Quote #: ${quote.public_id ?? ""}`, 40, 78, { align: "right" });
+        doc.text(`Date: ${new Date().toLocaleDateString("en-ZA")}`, 40, 93, { align: "right" });
+        doc.moveTo(40, 112).lineTo(doc.page.width - 40, 112).strokeColor("#e5e5e5").stroke();
+        doc.y = 126;
+      };
+      const addServicePage = () => {
+        doc.addPage();
+        drawServiceHeader();
+      };
+      const ensureServiceSpace = (requiredHeight = 24) => {
+        if (doc.y + requiredHeight > serviceBottomY()) {
+          addServicePage();
+        }
+      };
+      const drawServiceTableHeader = () => {
+        ensureServiceSpace(rowH + 8);
+        const top = doc.y;
+        doc.rect(40, top, 515, rowH).fill("#f3f4f6");
+        doc.font("Helvetica-Bold").fontSize(9).fillColor("#222");
+        doc.text("Item", tableColX[0] + 4, top + 5, { width: tableColW[0] - 8, lineBreak: false });
+        doc.text("Description", tableColX[1] + 4, top + 5, { width: tableColW[1] - 8, lineBreak: false });
+        doc.text("Qty", tableColX[2], top + 5, { width: tableColW[2], align: "right", lineBreak: false });
+        doc.text("Unit", tableColX[3], top + 5, { width: tableColW[3], align: "right", lineBreak: false });
+        doc.text("Total", tableColX[4], top + 5, { width: tableColW[4], align: "right", lineBreak: false });
+        doc.y = top + rowH;
+      };
+
+      drawServiceHeader();
+      doc.font("Helvetica-Bold").fontSize(11).fillColor("#111").text("Client Information", { width: pageWidth });
+      doc.moveDown(0.3);
+      doc.font("Helvetica").fontSize(10).fillColor("#333");
+      doc.text(`Client: ${firstDefinedString(quote.customer) || "—"}`, { width: pageWidth });
+      const primaryContact = firstDefinedString(quote.contact_name, quote.contactName);
+      if (primaryContact) doc.text(`Primary Contact: ${primaryContact}`, { width: pageWidth });
+      const contactEmail = firstDefinedString(quote.contact_email, quote.contactEmail);
+      if (contactEmail) doc.text(`Email: ${contactEmail}`, { width: pageWidth });
+      const expiresAt = firstDefinedString(quote.expires_at, quote.expiresAt);
+      if (expiresAt) doc.text(`Valid Until: ${expiresAt}`, { width: pageWidth });
+      const regionValue = firstDefinedString(quote.region);
+      if (regionValue) doc.text(`Region: ${regionValue}`, { width: pageWidth });
+
+      if (assumptions.length) {
+        ensureServiceSpace(40);
+        doc.moveDown(0.8);
+        doc.font("Helvetica-Bold").fontSize(11).fillColor("#111").text("Scope / Notes", { width: pageWidth });
+        doc.moveDown(0.25);
+        doc.font("Helvetica").fontSize(10).fillColor("#333");
+        assumptions.forEach((line) => {
+          ensureServiceSpace(16);
+          doc.text(`• ${line}`, { width: pageWidth });
+        });
+      }
+
+      ensureServiceSpace(46);
+      doc.moveDown(0.8);
+      doc.font("Helvetica-Bold").fontSize(11).fillColor("#111").text("Quoted Services", { width: pageWidth });
+      doc.moveDown(0.25);
+      drawServiceTableHeader();
+
+      if (!items?.length) {
+        ensureServiceSpace(rowH + 8);
+        doc.rect(40, doc.y, 515, rowH).fill("#fafafa");
+        doc.font("Helvetica").fontSize(10).fillColor("#333").text("No line items added.", 44, doc.y + 5, { width: 507 });
+        doc.y += rowH + 4;
+      } else {
+        items.forEach((item, index) => {
+          if (doc.y + rowH > serviceBottomY()) {
+            addServicePage();
+            drawServiceTableHeader();
+          }
+          if (index % 2 === 1) {
+            doc.rect(40, doc.y, 515, rowH).fill("#fafafa");
+          }
+          const rowY = doc.y;
+          const itemTotal = Number(item.unit_price ?? 0) * Number(item.quantity ?? 0);
+          const description = firstDefinedString(item.description);
+          doc.font("Helvetica").fontSize(9).fillColor("#222");
+          doc.text(firstDefinedString(item.name) || "Service", tableColX[0] + 4, rowY + 5, {
+            width: tableColW[0] - 8,
+            ellipsis: true,
+            lineBreak: false,
+          });
+          doc.text(description || "—", tableColX[1] + 4, rowY + 5, {
+            width: tableColW[1] - 8,
+            ellipsis: true,
+            lineBreak: false,
+          });
+          doc.text(String(item.quantity ?? 0), tableColX[2], rowY + 5, { width: tableColW[2], align: "right", lineBreak: false });
+          doc.text(formatCurrency(item.unit_price ?? 0, currency), tableColX[3], rowY + 5, {
+            width: tableColW[3],
+            align: "right",
+            lineBreak: false,
+          });
+          doc.text(formatCurrency(itemTotal, currency), tableColX[4], rowY + 5, {
+            width: tableColW[4],
+            align: "right",
+            lineBreak: false,
+          });
+          doc.y += rowH;
+        });
+      }
+
+      ensureServiceSpace(62);
+      doc.moveDown(0.5);
+      doc.strokeColor("#e5e5e5").moveTo(40, doc.y).lineTo(555, doc.y).stroke();
+      doc.moveDown(0.5);
+      doc.font("Helvetica-Bold").fontSize(11).fillColor("#111");
+      doc.text(`Total: ${formatCurrency(quote.total ?? 0, currency)} (Excl. VAT)`, 40, doc.y, { align: "right" });
+
+      if (terms.length) {
+        ensureServiceSpace(28);
+        doc.moveDown(0.9);
+        doc.font("Helvetica-Bold").fontSize(11).fillColor("#111").text("Terms", { width: pageWidth });
+        doc.moveDown(0.25);
+        doc.font("Helvetica").fontSize(10).fillColor("#333");
+        terms.forEach((line) => {
+          ensureServiceSpace(16);
+          doc.text(`• ${line}`, { width: pageWidth });
+        });
+      }
+
+      ensureServiceSpace(22);
+      doc.moveDown(1);
+      doc.font("Helvetica").fontSize(9).fillColor("#666").text("Prepared by Continuate IT Services", { width: pageWidth });
+
+      drawSimplePageNumbers();
+    };
 
     const drawPricingHeader = (tableY, colX, colW, rowH) => {
       doc.rect(40, tableY, 515, rowH).fill("#f3f4f6");
@@ -128,6 +298,12 @@ export const buildPdf = ({ quote, items, acceptUrl, slaUrl, logoDark, logoLight 
       });
       setBodyStyle();
     };
+
+    if (isServiceQuote()) {
+      drawServiceQuotePdf();
+      doc.end();
+      return;
+    }
 
     // Cover (premium, minimal)
     doc.rect(0, 0, doc.page.width, doc.page.height).fill("#111");
