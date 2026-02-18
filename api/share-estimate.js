@@ -43,14 +43,14 @@ const loadLogo = async (baseUrl, path) => {
 };
 
 const calculateEstimate = ({ devices, cybersecurity, backup }) => {
-  const baseRate = 220;
-  const cybersecurityRate = 125;
-  const backupRate = 75;
+  const baseRate = 99;
+  const cybersecurityRate = 99;
+  const backupRate = 99;
   let base = devices * baseRate;
   if (cybersecurity) base += devices * cybersecurityRate;
   if (backup) base += devices * backupRate;
-  const low = Math.round((base * 0.85) / 100) * 100;
-  const high = Math.round((base * 1.15) / 100) * 100;
+  const low = base;
+  const high = base;
   return { subtotal: base, total: base, low, high };
 };
 
@@ -62,7 +62,7 @@ const buildItems = ({ devices, cybersecurity, backup }) => {
       description: "24/7 monitoring, remote support, patch management",
       unit: "device",
       quantity: devices,
-      unit_price: 220,
+      unit_price: 99,
       sla_tier: "Standard response",
       kpi_tags: ["Uptime", "Patch compliance"],
     },
@@ -74,7 +74,7 @@ const buildItems = ({ devices, cybersecurity, backup }) => {
       description: "EDR/XDR, firewall management, threat detection",
       unit: "device",
       quantity: devices,
-      unit_price: 125,
+      unit_price: 99,
       sla_tier: "Enhanced protection",
       kpi_tags: ["MTTA", "MTTR"],
     });
@@ -86,7 +86,7 @@ const buildItems = ({ devices, cybersecurity, backup }) => {
       description: "Encrypted backups, off-site replication, DR",
       unit: "device",
       quantity: devices,
-      unit_price: 75,
+      unit_price: 99,
       sla_tier: "Recovery-ready",
       kpi_tags: ["Backup success", "RTO"],
     });
@@ -121,8 +121,8 @@ export default async function handler(req, res) {
         contact_email: email,
         status: "Estimate",
         currency: "ZAR",
-        assumptions: [],
-        terms: [],
+        assumptions: ["12-month contract with month-to-month billing."],
+        terms: ["Managed IT Support is billed at R99 per device per month.", "Each selected add-on is billed at R99 per device per month."],
         subtotal: estimate.subtotal,
         total: estimate.total,
         sla_url: slaUrl,

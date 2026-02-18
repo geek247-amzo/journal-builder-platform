@@ -44,10 +44,10 @@ const AdminQuoteBuilder = () => {
     "Quarterly business reviews and KPI scorecards included.",
   );
   const [assumptionThree, setAssumptionThree] = useState(
-    "Monthly billing in arrears via ACH; annual renewal with 3% uplift.",
+    "Service is contracted for 12 months with month-to-month billing.",
   );
-  const [termsOne, setTermsOne] = useState("12-month term with annual renewal option.");
-  const [termsTwo, setTermsTwo] = useState("Service credits apply after SLA breach review.");
+  const [termsOne, setTermsOne] = useState("12-month contract term.");
+  const [termsTwo, setTermsTwo] = useState("Billed month-to-month.");
 
   const convert = (amount: number) => {
     if (currency === "USD") {
@@ -91,7 +91,10 @@ const AdminQuoteBuilder = () => {
 
       toast({
         title: status === "Sent" ? "Quote sent" : "Quote saved",
-        description: `Quote ${data.id} stored in Postgres.`,
+        description:
+          status === "Sent"
+            ? `Quote ${data.id} emailed via Mailjet.`
+            : `Quote ${data.id} stored in Postgres.`,
       });
     } catch (error) {
       toast({

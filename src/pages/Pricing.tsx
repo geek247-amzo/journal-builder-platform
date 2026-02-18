@@ -22,19 +22,14 @@ import { fadeUp } from "@/lib/animations";
 import { useToast } from "@/hooks/use-toast";
 
 function calculateEstimate(devices: number, cybersecurity: boolean, backup: boolean) {
-  const baseRate = 220;
-  const cybersecurityRate = 125;
-  const backupRate = 75;
+  const baseRate = 99;
+  const cybersecurityRate = 99;
+  const backupRate = 99;
 
   let base = devices * baseRate;
   if (cybersecurity) base += devices * cybersecurityRate;
   if (backup) base += devices * backupRate;
-
-  // Show a range (±15%) to keep it consultative
-  const low = Math.round(base * 0.85 / 100) * 100;
-  const high = Math.round(base * 1.15 / 100) * 100;
-
-  return { low, high };
+  return { total: base };
 }
 
 function formatZAR(amount: number) {
@@ -46,14 +41,14 @@ function buildLineItems(devices: number, cybersecurity: boolean, backup: boolean
     {
       name: "Managed IT Support",
       qty: devices,
-      unitPrice: 220,
+      unitPrice: 99,
     },
   ];
   if (cybersecurity) {
-    items.push({ name: "Cybersecurity", qty: devices, unitPrice: 125 });
+    items.push({ name: "Cybersecurity", qty: devices, unitPrice: 99 });
   }
   if (backup) {
-    items.push({ name: "Backup & Disaster Recovery", qty: devices, unitPrice: 75 });
+    items.push({ name: "Backup & Disaster Recovery", qty: devices, unitPrice: 99 });
   }
   return items.map((item) => ({
     ...item,
@@ -114,11 +109,11 @@ const faqs = [
   },
   {
     q: "How does billing work?",
-    a: "We operate on a fixed monthly fee based on the number of devices under management. No hidden costs, no per-incident charges. You'll receive a single, predictable invoice each month — making budgeting straightforward.",
+    a: "We operate on a fixed monthly fee based on the number of devices under management, billed month to month. All managed services run on a 12-month contract with predictable monthly invoicing and no hidden per-incident charges.",
   },
   {
     q: "Can I scale up or down?",
-    a: "Absolutely. Our pricing scales with your business. As you add or remove devices, your monthly fee adjusts accordingly. There are no long-term lock-in contracts — we earn your business every month.",
+    a: "Yes. Device counts can be adjusted as your business changes, and billing updates month to month. The agreement term is 12 months.",
   },
   {
     q: "What about on-site support?",
@@ -300,10 +295,10 @@ const Pricing = () => {
               <div className="border-t border-border pt-8 text-center">
                 <p className="text-sm text-muted-foreground mb-2">Estimated Monthly Cost</p>
                 <p className="font-display text-4xl md:text-5xl font-bold text-foreground mb-1">
-                  {formatZAR(estimate.low)} – {formatZAR(estimate.high)}
+                  {formatZAR(estimate.total)}
                 </p>
                 <p className="text-xs text-muted-foreground mb-8">
-                  per month &middot; exact pricing depends on your environment
+                  per month &middot; 12-month contract &middot; billed month to month
                 </p>
                 <Link
                   to="/contact"
@@ -344,7 +339,8 @@ const Pricing = () => {
                   <div className="text-right font-semibold text-foreground">{formatZAR(subtotal)}</div>
                 </div>
                 <div className="px-4 py-3 text-xs text-muted-foreground">
-                  Estimate range: {formatZAR(estimate.low)} – {formatZAR(estimate.high)} (environment-dependent).
+                  Fixed pricing: R99 for Managed IT Support + R99 per selected add-on, per device, per month.
+                  12-month contract with month-to-month billing.
                 </div>
               </div>
 
