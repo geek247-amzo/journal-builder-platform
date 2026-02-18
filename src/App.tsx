@@ -30,6 +30,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminQuotes from "./pages/admin/AdminQuotes";
 import AdminQuoteBuilder from "./pages/admin/AdminQuoteBuilder";
 import AdminQuoteDetail from "./pages/admin/AdminQuoteDetail";
+import AdminServiceQuoteBuilder from "./pages/admin/AdminServiceQuoteBuilder";
 import AdminContracts from "./pages/admin/AdminContracts";
 import AdminContractDetail from "./pages/admin/AdminContractDetail";
 import AdminTests from "./pages/admin/AdminTests";
@@ -93,6 +94,7 @@ const App = () => (
             <Route path="quotes" element={<AdminQuotes />} />
             <Route path="quotes/new" element={<AdminQuoteBuilder />} />
             <Route path="quotes/:id" element={<AdminQuoteDetail />} />
+            <Route path="service-quotes" element={<AdminServiceQuoteBuilder />} />
             <Route path="contracts" element={<AdminContracts />} />
             <Route path="contracts/:id" element={<AdminContractDetail />} />
             <Route path="tests" element={<AdminTests />} />

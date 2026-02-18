@@ -76,9 +76,14 @@ const AdminQuotes = () => {
               Build IT SLA and MSSP proposals, send live links, and track acceptance.
             </p>
           </div>
-          <Button asChild>
-            <Link to="/admin/quotes/new">Create Quote</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link to="/admin/service-quotes">Service Quotes</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/admin/quotes/new">Create Quote</Link>
+            </Button>
+          </div>
         </div>
       </motion.div>
 

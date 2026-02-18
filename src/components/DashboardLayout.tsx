@@ -36,6 +36,7 @@ const clientNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { label: "Overview", path: "/admin", icon: LayoutDashboard },
   { label: "Quotes", path: "/admin/quotes", icon: FileText },
+  { label: "Service Quotes", path: "/admin/service-quotes", icon: FileText },
   { label: "Contracts", path: "/admin/contracts", icon: FileCheck2 },
   { label: "Users", path: "/admin/users", icon: Users },
   { label: "Leads", path: "/admin/leads", icon: UserRound },
